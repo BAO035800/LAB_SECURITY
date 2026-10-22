@@ -6,9 +6,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nmap tcpdump dsniff ettercap-text-only hping3 \
     iproute2 iputils-ping net-tools iptables \
+    openssh-server \
     curl netcat-openbsd nano less procps \
  && rm -rf /var/lib/apt/lists/*
 # dsniff -> có arpspoof (ARP spoofing / MITM)
 # ettercap-text-only -> MITM; hping3 -> tạo gói tùy biến, SYN scan/flood
+
+# Chuẩn bị SSH (chỉ dùng cho lab: cho login root bằng mật khẩu)
+RUN mkdir -p /run/sshd \
+ && echo 'root:labpass' | chpasswd \
+ && sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+ && sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 CMD ["sleep", "infinity"]
