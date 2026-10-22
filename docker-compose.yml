@@ -1,0 +1,73 @@
+# Lab an ninh mạng — 2 LAN, 1 router, attacker/victim/server
+# Chạy:  docker compose up -d --build
+# Vào máy:  docker exec -it attacker bash   (hoặc victim/router/server)
+
+services:
+  attacker:
+    build: { context: ., dockerfile: Dockerfile.attacker }
+    image: lab-attacker
+    container_name: attacker
+    hostname: attacker
+    cap_add: [NET_ADMIN, NET_RAW]
+    # Mặc định KHÔNG forward. Bật khi làm MITM trong suốt:
+    #   sysctl -w net.ipv4.ip_forward=1
+    depends_on: [router]
+    command: >
+      bash -c "ip route add 10.0.2.0/24 via 10.0.1.254 2>/dev/null; sleep infinity"
+    networks:
+      lan1: { ipv4_address: 10.0.1.10 }
+
+  victim:
+    build: { context: ., dockerfile: Dockerfile.node }
+    image: lab-node
+    container_name: victim
+    hostname: victim
+    cap_add: [NET_ADMIN]
+    depends_on: [router]
+    command: >
+      bash -c "ip route add 10.0.2.0/24 via 10.0.1.254 2>/dev/null;
+               /usr/sbin/sshd; sleep infinity"
+    networks:
+      lan1: { ipv4_address: 10.0.1.20 }
+
+  router:
+    build: { context: ., dockerfile: Dockerfile.node }
+    image: lab-node
+    container_name: router
+    hostname: router
+    cap_add: [NET_ADMIN]
+    sysctls:
+      net.ipv4.ip_forward: "1"
+    # Firewall để trống -> bạn tự thêm rule iptables ở ĐÂY khi làm bài
+    command: >
+      bash -c "sleep infinity"
+    networks:
+      lan1: { ipv4_address: 10.0.1.254 }
+      lan2: { ipv4_address: 10.0.2.254 }
+
+  server:
+    build: { context: ., dockerfile: Dockerfile.node }
+    image: lab-node
+    container_name: server
+    hostname: server
+    cap_add: [NET_ADMIN]
+    depends_on: [router]
+    command: >
+      bash -c "ip route add 10.0.1.0/24 via 10.0.2.254 2>/dev/null;
+               /usr/sbin/sshd; nginx -g 'daemon off;'"
+    networks:
+      lan2: { ipv4_address: 10.0.2.10 }
+
+networks:
+  lan1:
+    internal: true          # cô lập, không ra internet
+    driver_opts:
+      com.docker.network.bridge.name: lab-lan1   # tên bridge để bắt gói bằng Wireshark
+    ipam:
+      config: [{ subnet: 10.0.1.0/24 }]
+  lan2:
+    internal: true
+    driver_opts:
+      com.docker.network.bridge.name: lab-lan2
+    ipam:
+      config: [{ subnet: 10.0.2.0/24 }]

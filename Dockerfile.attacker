@@ -1,0 +1,14 @@
+# Máy attacker — Ubuntu + bộ công cụ tấn công/kiểm thử mạng
+# (Muốn full toolset có thể đổi thành: FROM kalilinux/kali-rolling)
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nmap tcpdump dsniff ettercap-text-only hping3 \
+    iproute2 iputils-ping net-tools iptables \
+    curl netcat-openbsd nano less procps \
+ && rm -rf /var/lib/apt/lists/*
+# dsniff -> có arpspoof (ARP spoofing / MITM)
+# ettercap-text-only -> MITM; hping3 -> tạo gói tùy biến, SYN scan/flood
+
+CMD ["sleep", "infinity"]

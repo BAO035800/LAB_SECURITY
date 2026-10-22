@@ -1,0 +1,20 @@
+# Image chung cho victim, router, server — cài sẵn công cụ mạng cơ bản
+FROM ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    iproute2 iputils-ping net-tools tcpdump iptables \
+    openssh-server nginx \
+    curl netcat-openbsd nano less procps \
+ && rm -rf /var/lib/apt/lists/*
+
+# Chuẩn bị SSH (chỉ dùng cho lab: cho login root bằng mật khẩu)
+RUN mkdir -p /run/sshd \
+ && echo 'root:labpass' | chpasswd \
+ && sed -i 's/#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+ && sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+
+# Trang web đơn giản để test scan / sniff HTTP
+RUN echo '<h1>Lab server - lan2</h1><p>login form (demo)</p>' > /var/www/html/index.html
+
+CMD ["sleep", "infinity"]
